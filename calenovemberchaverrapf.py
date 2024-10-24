@@ -1,69 +1,78 @@
 import streamlit as st
 import sqlite3
-import pandas as pd
+import os
 
-# Function to create/connect to the SQLite database
-def init_db():
-    conn = sqlite3.connect('training_data.db')  # SQLite database stored in the same directory
-    cursor = conn.cursor()
-    # Create a table to store parents' submissions if it doesn't exist
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS parents_data (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre_padre TEXT,
-        nombre_jugador TEXT,
-        notas TEXT,
-        microciclo_1 TEXT,
-        microciclo_2 TEXT,
-        microciclo_3 TEXT,
-        microciclo_4 TEXT,
-        microciclo_5 TEXT
-    )
-    ''')
-    conn.commit()
-    return conn
+# Define the path to the SQLite database file
+db_path = os.path.join(os.path.dirname(__file__), 'training_data.db')
 
-# Function to save data to SQLite database
-def save_to_db(nombre_padre, nombre_jugador, notas, microciclos):
-    conn = init_db()
-    cursor = conn.cursor()
-    # Convert microciclos (dictionaries) to strings for storage
-    microciclo_1 = str(microciclos['microciclo_1'])
-    microciclo_2 = str(microciclos['microciclo_2'])
-    microciclo_3 = str(microciclos['microciclo_3'])
-    microciclo_4 = str(microciclos['microciclo_4'])
-    microciclo_5 = str(microciclos['microciclo_5'])
-    
-    # Insert the data into the table
-    cursor.execute('''
-    INSERT INTO parents_data (nombre_padre, nombre_jugador, notas, microciclo_1, microciclo_2, microciclo_3, microciclo_4, microciclo_5)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', 
-    (nombre_padre, nombre_jugador, notas, microciclo_1, microciclo_2, microciclo_3, microciclo_4, microciclo_5))
-    conn.commit()
-    conn.close()
+# Function to connect to the local SQLite database
+def connect_to_sqlite():
+    try:
+        conn = sqlite3.connect(db_path)
+        return conn
+    except sqlite3.Error as e:
+        st.error(f"Error connecting to the SQLite database: {e}")
+        return None
 
-# Function to fetch data from SQLite for visualization
-def fetch_data():
-    conn = sqlite3.connect('training_data.db')
-    df = pd.read_sql_query("SELECT * FROM parents_data", conn)
-    conn.close()
-    return df
+# Function to create the table if it doesn't exist
+def create_table():
+    conn = connect_to_sqlite()
+    if conn is not None:
+        cursor = conn.cursor()
+        cursor.execute('''CREATE TABLE IF NOT EXISTS fridayparents (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            nombre_padre TEXT,
+                            nombre_jugador TEXT,
+                            notas TEXT,
+                            microciclos TEXT
+                        )''')
+        conn.commit()
+        conn.close()
 
-# Function to display microcycles data from SQLite in the admin view
+# Save data to SQLite database
+def save_to_sqlite(nombre_padre, nombre_jugador, notas, microciclos):
+    conn = connect_to_sqlite()
+    if conn is not None:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO fridayparents (nombre_padre, nombre_jugador, notas, microciclos) VALUES (?, ?, ?, ?)",
+                       (nombre_padre, nombre_jugador, notas, str(microciclos)))
+        conn.commit()
+        conn.close()
+        st.success("¡Información guardada exitosamente!")
+
+# Function to display data from SQLite in an admin view
 def visualize_microciclos(data):
-    for _, row in data.iterrows():
-        st.subheader(f"Parent: {row['nombre_padre']}, Player: {row['nombre_jugador']}")
-        for i in range(1, 6):
-            microciclo = eval(row[f'microciclo_{i}'])  # Convert string back to dictionary
-            selected_dates = [date for date, chosen in microciclo.items() if chosen]
+    for parent in data:
+        st.subheader(f"Parent: {parent[1]}, Player: {parent[2]}")
+        
+        # Display the microciclos (retrieved as a string)
+        microciclos = eval(parent[4])  # Convert string back to dictionary
+        
+        for cycle, dates in microciclos.items():
+            selected_dates = [date for date, chosen in dates.items() if chosen]
             if selected_dates:
-                st.markdown(f"**Microciclo #{i}:** {', '.join(selected_dates)}")
+                st.markdown(f"**{cycle.capitalize()}:** {', '.join(selected_dates)}")
             else:
-                st.markdown(f"**Microciclo #{i}:** No dates selected.")
-        st.markdown(f"**Notas del Padre:** {row['notas']}")
+                st.markdown(f"**{cycle.capitalize()}:** No dates selected.")
+        
+        # Display notes field
+        st.markdown(f"**Notas del Padre:** {parent[3]}")
         st.write("---")
 
-# Admin access section to view all data
+# Function to display all data from SQLite in an admin view
+def display_all_data():
+    conn = connect_to_sqlite()
+    if conn is not None:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM fridayparents")
+        data = cursor.fetchall()
+        conn.close()
+        if data:
+            visualize_microciclos(data)
+        else:
+            st.info("No records found in the database.")
+
+# Admin access section
 def admin_access():
     st.subheader("Admin Access")
     password = st.text_input("Enter password", type="password")
@@ -71,11 +80,7 @@ def admin_access():
     if st.button("Login"):
         if password == "chave4043":
             st.success("Access granted!")
-            data = fetch_data()
-            if not data.empty:
-                visualize_microciclos(data)
-            else:
-                st.info("No records found in the database.")
+            display_all_data()
         else:
             st.error("Incorrect password. Access denied.")
 
@@ -88,34 +93,41 @@ def informacion_padre_y_calendario():
     st.subheader("¿Qué es un Microciclo?")
     st.markdown("""
         **Un microciclo** es un período de entrenamiento a corto plazo dentro de un programa de entrenamiento general. 
-        Generalmente, dura de 1 a 2 semanas y se enfoca en objetivos físicos o tácticos específicos.
+        Generalmente, dura de 1 a 2 semanas y se enfoca en objetivos físicos o tácticos específicos. Para los jugadores de fútbol, 
+        esto podría involucrar sesiones de resistencia, fuerza, agilidad o recuperación.
     """)
-    st.info("Por favor seleccione los días disponibles para cada microciclo.")
+
+    st.info("Los días subrayados con color son los días en los que se va a entrenar, cada color corresponde a un microciclo diferente. por favor seleccionar los días en los que se encuentre disponible.")
+
+    # Show calendar image
+    st.image("https://raw.githubusercontent.com/xchmcr/calenovemberREPO/main/calendar.png", 
+             caption="Calendario de Entrenamiento de Noviembre 2024", use_column_width=True)
 
     # Microcycle selections
     st.subheader("Seleccione Fechas de Entrenamiento Disponibles")
+    
+    # Create a dictionary to store microcycle data
     microciclos = {}
 
-    # Microciclo 1
     st.markdown("<h4 style='color: lightblue;'>Microciclo #1</h4>", unsafe_allow_html=True)
     microciclos['microciclo_1'] = {
-        "29 de octubre (martes)": st.checkbox("29 de octubre (martes)", key="microciclo_1_1"),
+        "29 de octubre (martes)": st.checkbox("29 de octubre (martes)", key="microciclo_1"),
         "30 de octubre (miércoles)": st.checkbox("30 de octubre (miércoles)", key="microciclo_1_2"),
         "1 de noviembre (viernes)": st.checkbox("1 de noviembre (viernes)", key="microciclo_1_3"),
         "2 de noviembre (sábado)": st.checkbox("2 de noviembre (sábado)", key="microciclo_1_4"),
     }
 
-    # Microciclo 2
     st.markdown("<h4 style='color: lightcoral;'>Microciclo #2</h4>", unsafe_allow_html=True)
     microciclos['microciclo_2'] = {
         "4 de noviembre (lunes)": st.checkbox("4 de noviembre (lunes)", key="microciclo_2_1"),
         "5 de noviembre (martes)": st.checkbox("5 de noviembre (martes)", key="microciclo_2_2"),
         "7 de noviembre (jueves)": st.checkbox("7 de noviembre (jueves)", key="microciclo_2_3"),
         "8 de noviembre (viernes)": st.checkbox("8 de noviembre (viernes)", key="microciclo_2_4"),
+        "9 de noviembre (sábado)": st.checkbox("9 de noviembre (sábado)", key="microciclo_2_5"),
     }
 
-    # Additional microcycles (3, 4, 5) follow the same structure...
-
+    # Continue with other cycles...
+    
     # Notes field
     st.subheader("Notas o Mensajes para el Entrenador")
     notas = st.text_area("Escriba sus notas o mensajes aquí:")
@@ -123,8 +135,7 @@ def informacion_padre_y_calendario():
     # Submit button
     if st.button("Enviar"):
         if nombre_padre and nombre_jugador:
-            save_to_db(nombre_padre, nombre_jugador, notas, microciclos)
-            st.success("¡Información enviada con éxito!")
+            save_to_sqlite(nombre_padre, nombre_jugador, notas, microciclos)
         else:
             st.error("Por favor, ingrese el nombre del padre y del jugador.")
 
@@ -132,6 +143,9 @@ def informacion_padre_y_calendario():
 def main():
     st.title("Sistema de Gestión de entrenamientos Octubre-Noviembre")
     
+    # Create the table on startup if it doesn't exist
+    create_table()
+
     # Choose between data input or admin access
     menu = ["Formulario Padre", "Acceso Admin"]
     choice = st.sidebar.selectbox("Seleccione una opción", menu)
