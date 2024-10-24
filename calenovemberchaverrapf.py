@@ -3,7 +3,7 @@ from pymongo import MongoClient
 
 # Function to connect to MongoDB
 def connect_to_mongo():
-    uri = "mongodb+srv://xchmcr:Waffletea27@clustertest01.dc3gd.mongodb.net/"
+    uri = "mongodb+srv://xchmcr:Waffletea27@clustertest01.dc3gd.mongodb.net/fridaydatabase?retryWrites=true&w=majority&ssl=true&tlsAllowInvalidCertificates=true"
     try:
         client = MongoClient(uri)
         db = client["fridaydatabase"]
@@ -11,6 +11,7 @@ def connect_to_mongo():
     except Exception as e:
         st.error(f"Error connecting to MongoDB: {e}")
         return None
+
 
 #save to mongo
 def save_to_mongo(nombre_padre, nombre_jugador, notas, microciclos):
