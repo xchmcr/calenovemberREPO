@@ -1,128 +1,159 @@
 import streamlit as st
-from connections import connect_to_mongo
+from pymongo import MongoClient
 
-def main():
-    st.title("Sistema de Gestión de entrenamientos Noviembre")
+# Function to connect to MongoDB
+def connect_to_mongo():
+    uri = "mongodb+srv://xchmcr:Waffletea27@clustertest01.dc3gd.mongodb.net/"
+    try:
+        client = MongoClient(uri)
+        db = client["fridaydatabase"]
+        return db
+    except Exception as e:
+        st.error(f"Error connecting to MongoDB: {e}")
+        return None
 
-    # Estado de sesión para almacenar datos del formulario y estado de administrador
-    if "nombre_padre" not in st.session_state:
-        st.session_state.nombre_padre = None
-    if "nombre_jugador" not in st.session_state:
-        st.session_state.nombre_jugador = None
-    if "es_admin" not in st.session_state:
-        st.session_state.es_admin = False  # Estado de administrador para ver envíos
-
-    # Opciones del menú para la recopilación de datos de padres
-    menu = ["Información del Padre y Calendario", "Inicio de Sesión de Administrador"]
-
-    choice = st.sidebar.selectbox("Menú", menu)
-
-    if choice == "Información del Padre y Calendario":
-        informacion_padre_y_calendario()
-
-    elif choice == "Inicio de Sesión de Administrador":
-        inicio_sesion_admin()
-
-    # Si el usuario ha iniciado sesión como administrador, permite ver envíos
-    if st.session_state.es_admin:
-        st.sidebar.subheader("Opciones de Administrador")
-        if st.sidebar.button("Ver Envíos"):
-            ver_envios()
+#save to mongo
+def save_to_mongo(nombre_padre, nombre_jugador, notas, microciclos):
+    db = connect_to_mongo()
+    
+    if db is not None:  # Corrected check
+        data = {
+            "nombre_padre": nombre_padre,
+            "nombre_jugador": nombre_jugador,
+            "notas": notas,
+            "microciclos": microciclos,
+        }
+        db.fridayparents.insert_one(data)
 
 
+# Function to display data from MongoDB in an admin view
+def visualize_microciclos(data):
+    for parent in data:
+        st.subheader(f"Parent: {parent['nombre_padre']}, Player: {parent['nombre_jugador']}")
+        
+        # Loop through each microciclo and show selected dates
+        for cycle, dates in parent["microciclos"].items():
+            selected_dates = [date for date, chosen in dates.items() if chosen]
+            if selected_dates:
+                st.markdown(f"**{cycle.capitalize()}:** {', '.join(selected_dates)}")
+            else:
+                st.markdown(f"**{cycle.capitalize()}:** No dates selected.")
+        
+        st.write("---")
+        # Function to display data from MongoDB in an admin view
+def display_all_data():
+    db = connect_to_mongo()
+    if db is not None:  # Corrected check
+        records = db.fridayparents.find()
+        data = list(records)
+        if data:
+            visualize_microciclos(data)
+        else:
+            st.info("No records found in the database.")
+
+# Admin access section
+def admin_access():
+    st.subheader("Admin Access")
+    password = st.text_input("Enter password", type="password")
+    
+    if st.button("Login"):
+        if password == "chave4043":
+            st.success("Access granted!")
+            display_all_data()
+        else:
+            st.error("Incorrect password. Access denied.")
+
+# Main form for parent to input microcycle selections
 def informacion_padre_y_calendario():
-    # Paso 1: Recoger nombres del padre y del jugador
     st.subheader("Ingrese Información del Padre y del Jugador")
     nombre_padre = st.text_input("Nombre del Padre")
     nombre_jugador = st.text_input("Nombre del Jugador")
-
-    # Paso 2: Información sobre el Microciclo
+    
     st.subheader("¿Qué es un Microciclo?")
     st.markdown("""
         **Un microciclo** es un período de entrenamiento a corto plazo dentro de un programa de entrenamiento general. 
         Generalmente, dura de 1 a 2 semanas y se enfoca en objetivos físicos o tácticos específicos. Para los jugadores de fútbol, 
-        esto podría involucrar sesiones de resistencia, fuerza, agilidad o recuperación. Cada microciclo es fundamental para optimizar el rendimiento del jugador.
+        esto podría involucrar sesiones de resistencia, fuerza, agilidad o recuperación.
     """)
 
-    # Paso 3: Mostrar la imagen del calendario personalizado
-    st.image("https://raw.githubusercontent.com/xchmcr/calenovemberREPO/main/calendar.png", caption="Calendario de Entrenamiento de Noviembre 2024", use_column_width=True)
+    # Show calendar image
+    st.image("https://raw.githubusercontent.com/xchmcr/calenovemberREPO/main/calendar.png", 
+             caption="Calendario de Entrenamiento de Noviembre 2024", use_column_width=True)
 
-    # Paso 4: Definir los microciclos con casillas de verificación
+    # Microcycle selections
     st.subheader("Seleccione Fechas de Entrenamiento Disponibles")
+    
+    # Create a dictionary to store microcycle data with colored headers
+    microciclos = {}
 
-    st.markdown("### Microciclo #1 (Azul Claro)")
-    microciclo_1 = {
-        "29 de octubre (martes)": st.checkbox("29 de octubre (martes)"),
-        "31 de octubre (Jueves)": st.checkbox("31 de octubre (Jueves)"),
-        "1 de Noviembre (Viernes)": st.checkbox("1 de Noviembre (Viernes)"),
-        "2 de Noviembre (Viernes)": st.checkbox("2 de Noviembre (Viernes)")
+    st.markdown("<h4 style='color: lightblue;'>Microciclo #1</h4>", unsafe_allow_html=True)
+    microciclos['microciclo_1'] = {
+        "29 de octubre (martes)": st.checkbox("29 de octubre (martes)", key="microciclo_1"),
+        "30 de octubre (miércoles)": st.checkbox("30 de octubre (miércoles)", key="microciclo_1_2"),
+        "1 de noviembre (viernes)": st.checkbox("1 de noviembre (viernes)", key="microciclo_1_3"),
+        "2 de noviembre (sábado)": st.checkbox("2 de noviembre (sábado)", key="microciclo_1_4"),
     }
 
-    st.markdown("### Microciclo #2 (Rojo)")
-    microciclo_2 = {
-        "4 de noviembre (lunes)": st.checkbox("4 de noviembre (lunes)"),
-        "5 de noviembre (martes)": st.checkbox("5 de noviembre (martes)"),
-        "7 de noviembre (jueves)": st.checkbox("7 de noviembre (jueves)"),
-        "8 de noviembre (viernes)": st.checkbox("8 de noviembre (viernes)"),
-        "9 de noviembre (sábado)": st.checkbox("9 de noviembre (sábado)")
+    st.markdown("<h4 style='color: lightcoral;'>Microciclo #2</h4>", unsafe_allow_html=True)
+    microciclos['microciclo_2'] = {
+        "4 de noviembre (lunes)": st.checkbox("4 de noviembre (lunes)", key="microciclo_2_1"),
+        "5 de noviembre (martes)": st.checkbox("5 de noviembre (martes)", key="microciclo_2_2"),
+        "7 de noviembre (jueves)": st.checkbox("7 de noviembre (jueves)", key="microciclo_2_3"),
+        "8 de noviembre (viernes)": st.checkbox("8 de noviembre (viernes)", key="microciclo_2_4"),
+        "9 de noviembre (sábado)": st.checkbox("9 de noviembre (sábado)", key="microciclo_2_5"),
     }
 
-    st.markdown("### Microciclo #3 (Naranja)")
-    microciclo_3 = {
-        "11 de noviembre (lunes)": st.checkbox("11 de noviembre (lunes)"),
-        "12 de noviembre (martes)": st.checkbox("12 de noviembre (martes)"),
-        "14 de noviembre (jueves)": st.checkbox("14 de noviembre (jueves)"),
-        "15 de noviembre (viernes)": st.checkbox("15 de noviembre (viernes)"),
-        "16 de noviembre (sábado)": st.checkbox("16 de noviembre (sábado)")
+    st.markdown("<h4 style='color: orange;'>Microciclo #3</h4>", unsafe_allow_html=True)
+    microciclos['microciclo_3'] = {
+        "11 de noviembre (lunes)": st.checkbox("11 de noviembre (lunes)", key="microciclo_3_1"),
+        "12 de noviembre (martes)": st.checkbox("12 de noviembre (martes)", key="microciclo_3_2"),
+        "14 de noviembre (jueves)": st.checkbox("14 de noviembre (jueves)", key="microciclo_3_3"),
+        "15 de noviembre (viernes)": st.checkbox("15 de noviembre (viernes)", key="microciclo_3_4"),
+        "16 de noviembre (sábado)": st.checkbox("16 de noviembre (sábado)", key="microciclo_3_5"),
     }
 
-    st.markdown("### Microciclo #4 (Morado)")
-    microciclo_4 = {
-        "18 de noviembre (lunes)": st.checkbox("18 de noviembre (lunes)"),
-        "19 de noviembre (martes)": st.checkbox("19 de noviembre (martes)"),
-        "21 de noviembre (jueves)": st.checkbox("21 de noviembre (jueves)"),
-        "22 de noviembre (viernes)": st.checkbox("22 de noviembre (viernes)"),
-        "23 de noviembre (sábado)": st.checkbox("23 de noviembre (sábado)")
+    st.markdown("<h4 style='color: purple;'>Microciclo #4</h4>", unsafe_allow_html=True)
+    microciclos['microciclo_4'] = {
+        "18 de noviembre (lunes)": st.checkbox("18 de noviembre (lunes)", key="microciclo_4_1"),
+        "19 de noviembre (martes)": st.checkbox("19 de noviembre (martes)", key="microciclo_4_2"),
+        "21 de noviembre (jueves)": st.checkbox("21 de noviembre (jueves)", key="microciclo_4_3"),
+        "22 de noviembre (viernes)": st.checkbox("22 de noviembre (viernes)", key="microciclo_4_4"),
+        "23 de noviembre (sábado)": st.checkbox("23 de noviembre (sábado)", key="microciclo_4_5"),
     }
 
-    st.markdown("### Microciclo #5 (Verde)")
-    microciclo_5 = {
-        "25 de noviembre (lunes)": st.checkbox("25 de noviembre (lunes)"),
-        "26 de noviembre (martes)": st.checkbox("26 de noviembre (martes)"),
-        "28 de noviembre (jueves)": st.checkbox("28 de noviembre (jueves)"),
-        "29 de noviembre (viernes)": st.checkbox("29 de noviembre (viernes)"),
-        "30 de noviembre (sábado)": st.checkbox("30 de noviembre (sábado)")
+    st.markdown("<h4 style='color: green;'>Microciclo #5</h4>", unsafe_allow_html=True)
+    microciclos['microciclo_5'] = {
+        "25 de noviembre (lunes)": st.checkbox("25 de noviembre (lunes)", key="microciclo_5_1"),
+        "26 de noviembre (martes)": st.checkbox("26 de noviembre (martes)", key="microciclo_5_2"),
+        "28 de noviembre (jueves)": st.checkbox("28 de noviembre (jueves)", key="microciclo_5_3"),
+        "29 de noviembre (viernes)": st.checkbox("29 de noviembre (viernes)", key="microciclo_5_4"),
+        "30 de noviembre (sábado)": st.checkbox("30 de noviembre (sábado)", key="microciclo_5_5"),
     }
 
-    # Paso 5: Campo de notas o mensajes
+    # Notes field
     st.subheader("Notas o Mensajes para el Entrenador")
     notas = st.text_area("Escriba sus notas o mensajes aquí:")
 
-    # Botón de envío
+    # Submit button
     if st.button("Enviar"):
-        st.session_state.nombre_padre = nombre_padre
-        st.session_state.nombre_jugador = nombre_jugador
-        st.session_state.notas = notas
-        
-        # Aquí puedes agregar el código para guardar la información en la base de datos
-        st.success("¡Información enviada con éxito!")
-
-def inicio_sesion_admin():
-    st.subheader("Inicio de Sesión de Administrador")
-    password = st.text_input("Contraseña", type="password")
-    
-    if st.button("Iniciar Sesión"):
-        # Aquí debes verificar la contraseña y permitir el acceso
-        if password == "Chave4043":  # Cambia esto a la verificación real
-            st.session_state.es_admin = True
-            st.success("Inicio de sesión exitoso.")
+        if nombre_padre and nombre_jugador:
+            save_to_mongo(nombre_padre, nombre_jugador, notas, microciclos)
+            st.success("¡Información enviada con éxito!")
         else:
-            st.error("Contraseña incorrecta.")
+            st.error("Por favor, ingrese el nombre del padre y del jugador.")
 
-def ver_envios():
-    st.subheader("Envíos Recibidos")
-    # Aquí debes agregar el código para mostrar los envíos guardados en la base de datos
-    st.write("Aquí puedes ver los datos enviados por los padres.")
+# Main function
+def main():
+    st.title("Sistema de Gestión de Datos de Jugadores de Fútbol")
+    
+    # Choose between data input or admin access
+    menu = ["Formulario Padre", "Acceso Admin"]
+    choice = st.sidebar.selectbox("Seleccione una opción", menu)
+    
+    if choice == "Formulario Padre":
+        informacion_padre_y_calendario()
+    elif choice == "Acceso Admin":
+        admin_access()
 
 if __name__ == "__main__":
     main()
