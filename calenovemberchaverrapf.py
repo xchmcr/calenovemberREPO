@@ -13,6 +13,7 @@ def connect_to_mongo():
         return None
 
 
+
 #save to mongo
 def save_to_mongo(nombre_padre, nombre_jugador, notas, microciclos):
     db = connect_to_mongo()
