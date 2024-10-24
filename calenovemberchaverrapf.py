@@ -1,17 +1,17 @@
 import streamlit as st
 from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure
 
-# Function to connect to MongoDB
 def connect_to_mongo():
     uri = "mongodb+srv://xchmcr:Waffletea27@clustertest01.dc3gd.mongodb.net/fridaydatabase?retryWrites=true&w=majority&ssl=true&tlsAllowInvalidCertificates=true"
+    
     try:
-        client = MongoClient(uri)
+        client = MongoClient(uri, serverSelectionTimeoutMS=5000, connectTimeoutMS=30000)
         db = client["fridaydatabase"]
         return db
-    except Exception as e:
+    except ConnectionFailure as e:
         st.error(f"Error connecting to MongoDB: {e}")
         return None
-
 
 
 #save to mongo
