@@ -39,7 +39,12 @@ def visualize_microciclos(data):
             else:
                 st.markdown(f"**{cycle.capitalize()}:** No dates selected.")
         
+        # Now display the notes field at the end
+        st.markdown(f"**Notas del Padre:** {parent.get('notas', 'No notes provided')}")
+        
         st.write("---")
+
+
         # Function to display data from MongoDB in an admin view
 def display_all_data():
     db = connect_to_mongo()
@@ -75,6 +80,8 @@ def informacion_padre_y_calendario():
         Generalmente, dura de 1 a 2 semanas y se enfoca en objetivos físicos o tácticos específicos. Para los jugadores de fútbol, 
         esto podría involucrar sesiones de resistencia, fuerza, agilidad o recuperación.
     """)
+
+    st.info("""Los días subrayados con color son los días en los que se va a entrenar, cada color corresponde a un microciclo diferente. por favor seleccionar los días en los que se encuentre disponible.""")
 
     # Show calendar image
     st.image("https://raw.githubusercontent.com/xchmcr/calenovemberREPO/main/calendar.png", 
@@ -144,7 +151,7 @@ def informacion_padre_y_calendario():
 
 # Main function
 def main():
-    st.title("Sistema de Gestión de Datos de Jugadores de Fútbol")
+    st.title("Sistema de Gestión de entrenamientos Octubre-Noviembre")
     
     # Choose between data input or admin access
     menu = ["Formulario Padre", "Acceso Admin"]
