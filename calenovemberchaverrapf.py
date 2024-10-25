@@ -25,39 +25,57 @@ def save_to_sqlite(nombre_padre, nombre_jugador, notas, microciclos):
         except Error as e:
             st.error(f"Error saving data: {e}")
 
-# Function to delete a specific record from SQLite based on ID
-def delete_record(parent_id):
+def get_all_parents():
+    """Fetch all parent names from the database"""
     conn = create_connection()
     if conn:
         try:
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM parents_data WHERE id = ?", (parent_id,))
-            conn.commit()
+            cursor.execute("SELECT DISTINCT nombre_padre FROM parents_data")
+            parents = cursor.fetchall()
             conn.close()
-            st.success(f"Record with ID {parent_id} deleted successfully.")
+            return [parent[0] for parent in parents]
         except Error as e:
-            st.error(f"Error deleting record: {e}")
+            st.error(f"Error fetching parent names: {e}")
+            return []
 
-# Function to display data from SQLite in admin view with delete button
+def delete_record_by_name(nombre_padre):
+    conn = create_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            # First verify if the record exists
+            cursor.execute("SELECT COUNT(*) FROM parents_data WHERE nombre_padre = ?", (nombre_padre,))
+            count = cursor.fetchone()[0]
+            
+            if count > 0:
+                cursor.execute("DELETE FROM parents_data WHERE nombre_padre = ?", (nombre_padre,))
+                conn.commit()
+                conn.close()
+                return True
+            else:
+                conn.close()
+                return False
+        except Error as e:
+            st.error(f"Error deleting data: {e}")
+            return False
+
+# Function to display data from SQLite in admin view
 def visualize_microciclos(data):
     for parent in data:
-        st.subheader(f"Parent: {parent[1]}, Player: {parent[2]} (ID: {parent[0]})")
+        st.subheader(f"Parent: {parent[1]}, Player: {parent[2]}")
         
         # Loop through each microciclo and show selected dates
         microciclos = eval(parent[4])  # Convert string back to dict
         for cycle, dates in microciclos.items():
             selected_dates = [date for date, chosen in dates.items() if chosen]
             if selected_dates:
-                st.markdown(f"*{cycle.capitalize()}:* {', '.join(selected_dates)}")
+                st.markdown(f"{cycle.capitalize()}: {', '.join(selected_dates)}")
             else:
-                st.markdown(f"*{cycle.capitalize()}:* No dates selected.")
+                st.markdown(f"{cycle.capitalize()}: No dates selected.")
         
-        # Display the notes field at the end
-        st.markdown(f"*Notas del Padre:* {parent[3]}")
-        
-        # Add a delete button for each record
-        if st.button(f"Delete Record (ID: {parent[0]})", key=f"delete_{parent[0]}"):
-            delete_record(parent[0])
+        # Now display the notes field at the end
+        st.markdown(f"Notas del Padre: {parent[3]}")
         
         st.write("---")
 
@@ -82,11 +100,47 @@ def admin_access():
     st.subheader("Admin Access")
     password = st.text_input("Enter password", type="password")
     
-    if st.button("Login"):
-        if password == "chave4043":
-            st.success("Access granted!")
+    if password == "chave4043":
+        st.success("Access granted!")
+        
+        # Create two columns
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.subheader("Current Records")
             display_all_data()
-        else:
+        
+        with col2:
+            st.subheader("Delete Records")
+            # Get list of all parents
+            parents = get_all_parents()
+            
+            if parents:
+                # Create a selection box for parents
+                selected_parent = st.selectbox(
+                    "Select parent to delete:",
+                    options=parents,
+                    key="parent_select"
+                )
+                
+                # Add a confirmation checkbox
+                confirm_delete = st.checkbox("Confirm deletion", key="confirm_delete")
+                
+                # Delete button
+                if st.button("Delete Selected Record"):
+                    if confirm_delete:
+                        if delete_record_by_name(selected_parent):
+                            st.success(f"Successfully deleted record for {selected_parent}")
+                            # Force a rerun to update the display
+                            st.experimental_rerun()
+                        else:
+                            st.error("Failed to delete record")
+                    else:
+                        st.warning("Please confirm deletion by checking the box above")
+            else:
+                st.info("No records available to delete")
+    else:
+        if password:  # Only show error if password was attempted
             st.error("Incorrect password. Access denied.")
 
 # Main form for parent to input microcycle selections
@@ -97,7 +151,7 @@ def informacion_padre_y_calendario():
     
     st.subheader("¿Qué es un Microciclo?")
     st.markdown("""
-        *Un microciclo* es un período de entrenamiento a corto plazo dentro de un programa de entrenamiento general. 
+        Un microciclo es un período de entrenamiento a corto plazo dentro de un programa de entrenamiento general. 
         Generalmente, dura de 1 a 2 semanas y se enfoca en objetivos físicos o tácticos específicos.
     """)
 
@@ -108,33 +162,47 @@ def informacion_padre_y_calendario():
 
     st.subheader("Seleccione Fechas de Entrenamiento Disponibles")
 
-    microciclos = {
-        'microciclo_1': {
-            "28 de octubre (lunes)": st.checkbox("28 de octubre (lunes)", key="microciclo_1_1"),
-            "31 de octubre (jueves)": st.checkbox("31 de octubre (jueves)", key="microciclo_1_2"),
-            "1 de noviembre (viernes)": st.checkbox("1 de noviembre (viernes)", key="microciclo_1_3"),
-            "2 de noviembre (sábado)": st.checkbox("2 de noviembre (sábado)", key="microciclo_1_4"),
-        },
-        'microciclo_2': {
-            "7 de noviembre (jueves)": st.checkbox("7 de noviembre (jueves)", key="microciclo_2_1"),
-            "8 de noviembre (viernes)": st.checkbox("8 de noviembre (viernes)", key="microciclo_2_2"),
-            "9 de noviembre (sábado)": st.checkbox("9 de noviembre (sábado)", key="microciclo_2_3"),
-        },
-        'microciclo_3': {
-            "14 de noviembre (jueves)": st.checkbox("14 de noviembre (jueves)", key="microciclo_3_1"),
-            "15 de noviembre (viernes)": st.checkbox("15 de noviembre (viernes)", key="microciclo_3_2"),
-            "16 de noviembre (sábado)": st.checkbox("16 de noviembre (sábado)", key="microciclo_3_3"),
-        },
-        'microciclo_4': {
-            "21 de noviembre (jueves)": st.checkbox("21 de noviembre (jueves)", key="microciclo_4_1"),
-            "22 de noviembre (viernes)": st.checkbox("22 de noviembre (viernes)", key="microciclo_4_2"),
-            "23 de noviembre (sábado)": st.checkbox("23 de noviembre (sábado)", key="microciclo_4_3"),
-        },
-        'microciclo_5': {
-            "28 de noviembre (jueves)": st.checkbox("28 de noviembre (jueves)", key="microciclo_5_1"),
-            "29 de noviembre (viernes)": st.checkbox("29 de noviembre (viernes)", key="microciclo_5_2"),
-            "30 de noviembre (sábado)": st.checkbox("30 de noviembre (sábado)", key="microciclo_5_3"),
-        }
+    microciclos = {}
+
+    # Microciclo #1
+    st.markdown("<h4 style='color: lightblue;'>Microciclo #1</h4>", unsafe_allow_html=True)
+    microciclos['microciclo_1'] = {
+        "28 de octubre (lunes)": st.checkbox("28 de octubre (lunes)", key="microciclo_1_1"),
+        "31 de octubre (jueves)": st.checkbox("31 de octubre (jueves)", key="microciclo_1_2"),
+        "1 de noviembre (viernes)": st.checkbox("1 de noviembre (viernes)", key="microciclo_1_3"),
+        "2 de noviembre (sábado)": st.checkbox("2 de noviembre (sábado)", key="microciclo_1_4"),
+    }
+
+    # Microciclo #2
+    st.markdown("<h4 style='color: lightcoral;'>Microciclo #2</h4>", unsafe_allow_html=True)
+    microciclos['microciclo_2'] = {
+        "7 de noviembre (jueves)": st.checkbox("7 de noviembre (jueves)", key="microciclo_2_1"),
+        "8 de noviembre (viernes)": st.checkbox("8 de noviembre (viernes)", key="microciclo_2_2"),
+        "9 de noviembre (sábado)": st.checkbox("9 de noviembre (sábado)", key="microciclo_2_3"),
+    }
+
+    # Microciclo #3
+    st.markdown("<h4 style='color: orange;'>Microciclo #3</h4>", unsafe_allow_html=True)
+    microciclos['microciclo_3'] = {
+        "14 de noviembre (jueves)": st.checkbox("14 de noviembre (jueves)", key="microciclo_3_1"),
+        "15 de noviembre (viernes)": st.checkbox("15 de noviembre (viernes)", key="microciclo_3_2"),
+        "16 de noviembre (sábado)": st.checkbox("16 de noviembre (sábado)", key="microciclo_3_3"),
+    }
+
+    # Microciclo #4
+    st.markdown("<h4 style='color: purple;'>Microciclo #4</h4>", unsafe_allow_html=True)
+    microciclos['microciclo_4'] = {
+        "21 de noviembre (jueves)": st.checkbox("21 de noviembre (jueves)", key="microciclo_4_1"),
+        "22 de noviembre (viernes)": st.checkbox("22 de noviembre (viernes)", key="microciclo_4_2"),
+        "23 de noviembre (sábado)": st.checkbox("23 de noviembre (sábado)", key="microciclo_4_3"),
+    }
+
+    # Microciclo #5
+    st.markdown("<h4 style='color: green;'>Microciclo #5</h4>", unsafe_allow_html=True)
+    microciclos['microciclo_5'] = {
+        "28 de noviembre (jueves)": st.checkbox("28 de noviembre (jueves)", key="microciclo_5_1"),
+        "29 de noviembre (viernes)": st.checkbox("29 de noviembre (viernes)", key="microciclo_5_2"),
+        "30 de noviembre (sábado)": st.checkbox("30 de noviembre (sábado)", key="microciclo_5_3"),
     }
 
     st.subheader("Notas o Mensajes para el Entrenador")
