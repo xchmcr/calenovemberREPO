@@ -131,8 +131,9 @@ def admin_access():
                     if confirm_delete:
                         if delete_record_by_name(selected_parent):
                             st.success(f"Successfully deleted record for {selected_parent}")
-                            # Force a rerun to update the display
-                            st.experimental_rerun()
+                            # Instead of experimental_rerun, just refresh the components
+                            st.empty()
+                            st.rerun()
                         else:
                             st.error("Failed to delete record")
                     else:
@@ -142,7 +143,7 @@ def admin_access():
     else:
         if password:  # Only show error if password was attempted
             st.error("Incorrect password. Access denied.")
-
+            
 # Main form for parent to input microcycle selections
 def informacion_padre_y_calendario():
     st.subheader("Ingrese Información del Padre y del Jugador")
