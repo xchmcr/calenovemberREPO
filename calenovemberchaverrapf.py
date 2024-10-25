@@ -143,7 +143,7 @@ def admin_access():
     else:
         if password:  # Only show error if password was attempted
             st.error("Incorrect password. Access denied.")
-            
+
 # Main form for parent to input microcycle selections
 def informacion_padre_y_calendario():
     st.subheader("Ingrese Información del Padre y del Jugador")
@@ -158,10 +158,58 @@ def informacion_padre_y_calendario():
 
     st.info("""Los días subrayados con color son los días en los que se va a entrenar, cada color corresponde a un microciclo diferente. Por favor seleccionar los días en los que se encuentre disponible.""")
 
-    st.image("https://raw.githubusercontent.com/xchmcr/calenovemberREPO/main/calendar.png", 
-             caption="Calendario de Entrenamiento de Noviembre 2024", use_column_width=True)
+    # Add custom HTML/CSS for the zoomable image
+    st.markdown("""
+        <style>
+            .zoom-container {
+                position: relative;
+                text-align: center;
+            }
+            .zoom-button {
+                background-color: #1E88E5;
+                color: white;
+                padding: 10px 20px;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                margin: 10px 0;
+                font-size: 16px;
+            }
+            .zoom-button:hover {
+                background-color: #1976D2;
+            }
+            .zoom-image {
+                max-width: 100%;
+                transition: transform 0.3s ease;
+                cursor: zoom-in;
+            }
+            .zoom-image.zoomed {
+                transform: scale(1.5);
+                cursor: zoom-out;
+            }
+            @media (max-width: 768px) {
+                .zoom-image.zoomed {
+                    transform: scale(2);
+                }
+            }
+        </style>
+        <div class="zoom-container">
+            <img src="https://raw.githubusercontent.com/xchmcr/calenovemberREPO/main/calendar.png" 
+                 class="zoom-image" 
+                 id="calendar-image"
+                 onclick="this.classList.toggle('zoomed')"
+                 alt="Calendario de Entrenamiento"
+            />
+            <br>
+            <button class="zoom-button" onclick="document.getElementById('calendar-image').classList.toggle('zoomed')">
+                👆 Click para hacer zoom
+            </button>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.subheader("Seleccione Fechas de Entrenamiento Disponibles")
+    st.markdown("<br>", unsafe_allow_html=True)  # Add some spacing
+
+    st.subheader("Por favor seleccione las fechas de entrenamiento en las que se encuentra disponible")
 
     microciclos = {}
 
