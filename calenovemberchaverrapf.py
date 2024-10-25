@@ -209,7 +209,7 @@ def informacion_padre_y_calendario():
 
     st.markdown("<br>", unsafe_allow_html=True)  # Add some spacing
 
-    st.subheader("Por favor seleccione las fechas de entrenamiento en las que se encuentra disponible")
+    st.subheader("Por favor seleccione todas las fechas de entrenamiento en las que se encuentra disponible")
 
     microciclos = {}
 
