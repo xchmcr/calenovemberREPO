@@ -25,6 +25,20 @@ def save_to_sqlite(nombre_padre, nombre_jugador, notas, microciclos):
         except Error as e:
             st.error(f"Error saving data: {e}")
 
+# Function to delete a record based on the parent's name
+def delete_record_by_name(nombre_padre):
+    conn = create_connection()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            query = "DELETE FROM parents_data WHERE nombre_padre = ?"
+            cursor.execute(query, (nombre_padre,))
+            conn.commit()
+            conn.close()
+            st.success(f"Record for {nombre_padre} deleted successfully!")
+        except Error as e:
+            st.error(f"Error deleting data: {e}")
+
 # Function to display data from SQLite in admin view
 def visualize_microciclos(data):
     for parent in data:
@@ -69,6 +83,15 @@ def admin_access():
         if password == "chave4043":
             st.success("Access granted!")
             display_all_data()
+
+            # Add option to delete a record
+            st.subheader("Delete Record")
+            delete_padre = st.text_input("Enter the parent's name to delete:")
+            if st.button("Delete Record"):
+                if delete_padre:
+                    delete_record_by_name(delete_padre)
+                else:
+                    st.error("Please enter a parent's name to delete.")
         else:
             st.error("Incorrect password. Access denied.")
 
@@ -96,8 +119,8 @@ def informacion_padre_y_calendario():
     # Microciclo #1
     st.markdown("<h4 style='color: lightblue;'>Microciclo #1</h4>", unsafe_allow_html=True)
     microciclos['microciclo_1'] = {
-        "29 de octubre (martes)": st.checkbox("29 de octubre (martes)", key="microciclo_1_1"),
-        "30 de octubre (miércoles)": st.checkbox("30 de octubre (miércoles)", key="microciclo_1_2"),
+        "28 de octubre (lunes)": st.checkbox("28 de octubre (lunes)", key="microciclo_1_1"),
+        "31 de octubre (jueves)": st.checkbox("31 de octubre (jueves)", key="microciclo_1_2"),
         "1 de noviembre (viernes)": st.checkbox("1 de noviembre (viernes)", key="microciclo_1_3"),
         "2 de noviembre (sábado)": st.checkbox("2 de noviembre (sábado)", key="microciclo_1_4"),
     }
@@ -105,41 +128,33 @@ def informacion_padre_y_calendario():
     # Microciclo #2
     st.markdown("<h4 style='color: lightcoral;'>Microciclo #2</h4>", unsafe_allow_html=True)
     microciclos['microciclo_2'] = {
-        "4 de noviembre (lunes)": st.checkbox("4 de noviembre (lunes)", key="microciclo_2_1"),
-        "5 de noviembre (martes)": st.checkbox("5 de noviembre (martes)", key="microciclo_2_2"),
-        "7 de noviembre (jueves)": st.checkbox("7 de noviembre (jueves)", key="microciclo_2_3"),
-        "8 de noviembre (viernes)": st.checkbox("8 de noviembre (viernes)", key="microciclo_2_4"),
-        "9 de noviembre (sábado)": st.checkbox("9 de noviembre (sábado)", key="microciclo_2_5"),
+        "7 de noviembre (jueves)": st.checkbox("7 de noviembre (jueves)", key="microciclo_2_1"),
+        "8 de noviembre (viernes)": st.checkbox("8 de noviembre (viernes)", key="microciclo_2_2"),
+        "9 de noviembre (sábado)": st.checkbox("9 de noviembre (sábado)", key="microciclo_2_3"),
     }
 
     # Microciclo #3
     st.markdown("<h4 style='color: orange;'>Microciclo #3</h4>", unsafe_allow_html=True)
     microciclos['microciclo_3'] = {
-        "11 de noviembre (lunes)": st.checkbox("11 de noviembre (lunes)", key="microciclo_3_1"),
-        "12 de noviembre (martes)": st.checkbox("12 de noviembre (martes)", key="microciclo_3_2"),
-        "14 de noviembre (jueves)": st.checkbox("14 de noviembre (jueves)", key="microciclo_3_3"),
-        "15 de noviembre (viernes)": st.checkbox("15 de noviembre (viernes)", key="microciclo_3_4"),
-        "16 de noviembre (sábado)": st.checkbox("16 de noviembre (sábado)", key="microciclo_3_5"),
+        "14 de noviembre (jueves)": st.checkbox("14 de noviembre (jueves)", key="microciclo_3_1"),
+        "15 de noviembre (viernes)": st.checkbox("15 de noviembre (viernes)", key="microciclo_3_2"),
+        "16 de noviembre (sábado)": st.checkbox("16 de noviembre (sábado)", key="microciclo_3_3"),
     }
 
     # Microciclo #4
     st.markdown("<h4 style='color: purple;'>Microciclo #4</h4>", unsafe_allow_html=True)
     microciclos['microciclo_4'] = {
-        "18 de noviembre (lunes)": st.checkbox("18 de noviembre (lunes)", key="microciclo_4_1"),
-        "19 de noviembre (martes)": st.checkbox("19 de noviembre (martes)", key="microciclo_4_2"),
-        "21 de noviembre (jueves)": st.checkbox("21 de noviembre (jueves)", key="microciclo_4_3"),
-        "22 de noviembre (viernes)": st.checkbox("22 de noviembre (viernes)", key="microciclo_4_4"),
-        "23 de noviembre (sábado)": st.checkbox("23 de noviembre (sábado)", key="microciclo_4_5"),
+        "21 de noviembre (jueves)": st.checkbox("21 de noviembre (jueves)", key="microciclo_4_1"),
+        "22 de noviembre (viernes)": st.checkbox("22 de noviembre (viernes)", key="microciclo_4_2"),
+        "23 de noviembre (sábado)": st.checkbox("23 de noviembre (sábado)", key="microciclo_4_3"),
     }
 
     # Microciclo #5
     st.markdown("<h4 style='color: green;'>Microciclo #5</h4>", unsafe_allow_html=True)
     microciclos['microciclo_5'] = {
-        "25 de noviembre (lunes)": st.checkbox("25 de noviembre (lunes)", key="microciclo_5_1"),
-        "26 de noviembre (martes)": st.checkbox("26 de noviembre (martes)", key="microciclo_5_2"),
-        "28 de noviembre (jueves)": st.checkbox("28 de noviembre (jueves)", key="microciclo_5_3"),
-        "29 de noviembre (viernes)": st.checkbox("29 de noviembre (viernes)", key="microciclo_5_4"),
-        "30 de noviembre (sábado)": st.checkbox("30 de noviembre (sábado)", key="microciclo_5_5"),
+        "28 de noviembre (jueves)": st.checkbox("28 de noviembre (jueves)", key="microciclo_5_1"),
+        "29 de noviembre (viernes)": st.checkbox("29 de noviembre (viernes)", key="microciclo_5_2"),
+        "30 de noviembre (sábado)": st.checkbox("30 de noviembre (sábado)", key="microciclo_5_3"),
     }
 
     st.subheader("Notas o Mensajes para el Entrenador")
