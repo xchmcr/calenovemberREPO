@@ -25,7 +25,7 @@ def save_to_sqlite(nombre_padre, nombre_jugador, notas, microciclos):
         except Error as e:
             st.error(f"Error saving data: {e}")
 
-# Function to delete a specific record from SQLite
+# Function to delete a specific record from SQLite based on ID
 def delete_record(parent_id):
     conn = create_connection()
     if conn:
@@ -52,7 +52,7 @@ def visualize_microciclos(data):
             else:
                 st.markdown(f"*{cycle.capitalize()}:* No dates selected.")
         
-        # Now display the notes field at the end
+        # Display the notes field at the end
         st.markdown(f"*Notas del Padre:* {parent[3]}")
         
         # Add a delete button for each record
@@ -108,18 +108,34 @@ def informacion_padre_y_calendario():
 
     st.subheader("Seleccione Fechas de Entrenamiento Disponibles")
 
-    microciclos = {}
-
-    # Example microciclo 1 (shortened for example)
-    st.markdown("<h4 style='color: lightblue;'>Microciclo #1</h4>", unsafe_allow_html=True)
-    microciclos['microciclo_1'] = {
-        "28 de octubre (lunes)": st.checkbox("28 de octubre (lunes)", key="microciclo_1_1"),
-        "31 de octubre (jueves)": st.checkbox("31 de octubre (jueves)", key="microciclo_1_2"),
-        "1 de noviembre (viernes)": st.checkbox("1 de noviembre (viernes)", key="microciclo_1_3"),
-        "2 de noviembre (sábado)": st.checkbox("2 de noviembre (sábado)", key="microciclo_1_4"),
+    microciclos = {
+        'microciclo_1': {
+            "28 de octubre (lunes)": st.checkbox("28 de octubre (lunes)", key="microciclo_1_1"),
+            "31 de octubre (jueves)": st.checkbox("31 de octubre (jueves)", key="microciclo_1_2"),
+            "1 de noviembre (viernes)": st.checkbox("1 de noviembre (viernes)", key="microciclo_1_3"),
+            "2 de noviembre (sábado)": st.checkbox("2 de noviembre (sábado)", key="microciclo_1_4"),
+        },
+        'microciclo_2': {
+            "7 de noviembre (jueves)": st.checkbox("7 de noviembre (jueves)", key="microciclo_2_1"),
+            "8 de noviembre (viernes)": st.checkbox("8 de noviembre (viernes)", key="microciclo_2_2"),
+            "9 de noviembre (sábado)": st.checkbox("9 de noviembre (sábado)", key="microciclo_2_3"),
+        },
+        'microciclo_3': {
+            "14 de noviembre (jueves)": st.checkbox("14 de noviembre (jueves)", key="microciclo_3_1"),
+            "15 de noviembre (viernes)": st.checkbox("15 de noviembre (viernes)", key="microciclo_3_2"),
+            "16 de noviembre (sábado)": st.checkbox("16 de noviembre (sábado)", key="microciclo_3_3"),
+        },
+        'microciclo_4': {
+            "21 de noviembre (jueves)": st.checkbox("21 de noviembre (jueves)", key="microciclo_4_1"),
+            "22 de noviembre (viernes)": st.checkbox("22 de noviembre (viernes)", key="microciclo_4_2"),
+            "23 de noviembre (sábado)": st.checkbox("23 de noviembre (sábado)", key="microciclo_4_3"),
+        },
+        'microciclo_5': {
+            "28 de noviembre (jueves)": st.checkbox("28 de noviembre (jueves)", key="microciclo_5_1"),
+            "29 de noviembre (viernes)": st.checkbox("29 de noviembre (viernes)", key="microciclo_5_2"),
+            "30 de noviembre (sábado)": st.checkbox("30 de noviembre (sábado)", key="microciclo_5_3"),
+        }
     }
-
-    # Additional microciclos can be added here...
 
     st.subheader("Notas o Mensajes para el Entrenador")
     notas = st.text_area("Escriba sus notas o mensajes aquí:")
